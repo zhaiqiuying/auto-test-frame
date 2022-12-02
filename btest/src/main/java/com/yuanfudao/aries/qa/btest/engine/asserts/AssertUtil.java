@@ -1,9 +1,9 @@
-package com.yuanfudao.aries.qa.btest.util;
+package com.yuanfudao.aries.qa.btest.engine.asserts;
 
 import com.yuanfudao.aries.qa.btest.model.Executor;
 import org.testng.Assert;
 
-public class AssertUtil {
+public class AssertUtil extends MethodBasedAssert {
 
     public static void assertTrue(Executor t, String message) {
         try {

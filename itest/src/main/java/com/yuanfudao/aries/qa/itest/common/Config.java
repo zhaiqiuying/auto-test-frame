@@ -1,5 +1,7 @@
 package com.yuanfudao.aries.qa.itest.common;
 
+import com.yuanfudao.aries.qa.btest.db.DataSourceFactory;
+import com.yuanfudao.aries.qa.btest.db.IDataSource;
 import com.yuanfudao.aries.qa.btest.util.YamlUtil;
 import com.yuanfudao.aries.qa.itest.model.CommonContext;
 import com.yuanfudao.aries.qa.itest.service.CommonService;
@@ -14,41 +16,51 @@ import java.util.Map;
 @Configuration("itestConfig")
 public class Config {
 
-    public final static CommonContext COMMON_CONTEXT = new CommonContext();
     @Autowired
     @Qualifier("commonService")
     private CommonService commonService;
 
     @Bean
     public CommonContext context() {
+        CommonContext commonContext = new CommonContext();
 
-        String envType = System.getProperty("ENV_TYPE");
-        String contextFile = this.getClass().getResource("/" + envType + "/context.yml").getPath();
+        // 载入context.yml文件
+        String envType = System.getProperty("ENV_TYPE", "test");
+        String contextFile = this.getClass().getResource("/" + envType + "/data/common/context.yml").getPath();
+        loadContext(commonContext, contextFile);
+        return commonContext;
+    }
+
+    private void loadContext(CommonContext commonContext, String contextFile) {
         Map map = YamlUtil.load(contextFile);
-
         if (map == null || map.size() == 0) {
-            return COMMON_CONTEXT;
+            return;
         }
         if (map.containsKey("users")) {
             Map userMap = commonService.toUsers((List) map.get("users"));
-            userMap.putAll(COMMON_CONTEXT.getUserMap());
-            COMMON_CONTEXT.setUserMap(userMap);
+            userMap.putAll(commonContext.getUserMap());
+            commonContext.setUserMap(userMap);
         }
         if (map.containsKey("devices")) {
             Map deviceMap = commonService.toDevices((List) map.get("devices"));
-            deviceMap.putAll(COMMON_CONTEXT.getDeviceMap());
-            COMMON_CONTEXT.setDeviceMap(deviceMap);
+            deviceMap.putAll(commonContext.getDeviceMap());
+            commonContext.setDeviceMap(deviceMap);
         }
         if (map.containsKey("envs")) {
             Map envMap = commonService.toEnvs((List) map.get("envs"));
-            envMap.putAll(COMMON_CONTEXT.getEnvMap());
-            COMMON_CONTEXT.setEnvMap(envMap);
+            envMap.putAll(commonContext.getEnvMap());
+            commonContext.setEnvMap(envMap);
         }
         if (map.containsKey("apps")) {
             Map appMap = commonService.toApps((List) map.get("apps"));
-            appMap.putAll(COMMON_CONTEXT.getAppMap());
-            COMMON_CONTEXT.setAppMap(appMap);
+            appMap.putAll(commonContext.getAppMap());
+            commonContext.setAppMap(appMap);
         }
-        return COMMON_CONTEXT;
+        if (map.containsKey("mysqls")) {
+            ((List) map.get("mysqls")).stream().forEach(item -> {
+                IDataSource dataSource = DataSourceFactory.getDataSource((Map) item);
+                commonContext.getMysqlDataSourceMap().put((String) ((Map<?, ?>) item).get("tag"), dataSource);
+            });
+        }
     }
 }

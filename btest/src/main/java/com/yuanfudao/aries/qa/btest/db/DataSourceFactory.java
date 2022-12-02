@@ -29,7 +29,7 @@ public class DataSourceFactory {
         return dataSource;
     }
 
-    public static IDataSource createDataSource(String dataSourceType) {
+    private static IDataSource createDataSource(String dataSourceType) {
         IDataSource dataSource = null;
         if (dataSourceType.contains("mysql")) {
             dataSource = new MysqlDataSource(dataSourceType);

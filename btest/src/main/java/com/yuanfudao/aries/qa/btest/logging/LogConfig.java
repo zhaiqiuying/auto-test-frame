@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Configuration;
 public class LogConfig {
 
     static {
-        String envType = System.getProperty("ENV_TYPE");
+        String envType = System.getProperty("ENV_TYPE", "test");
         // System.setProperty("logback.configurationFile", envType + "/logback.xml");
         System.setProperty("logback.configurationFile",
-                LogConfig.class.getResource("/" + envType + "/logback.xml").getPath());
+                LogConfig.class.getResource("/" + envType + "/config/common/logback.xml").getPath());
     }
 
 }

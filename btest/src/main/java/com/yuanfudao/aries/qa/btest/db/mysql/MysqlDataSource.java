@@ -4,6 +4,7 @@ import com.yuanfudao.aries.qa.btest.db.AbstractDataSource;
 import com.yuanfudao.aries.qa.btest.db.AbstractDbConnection;
 import com.yuanfudao.aries.qa.btest.db.Execute;
 import com.yuanfudao.aries.qa.btest.db.IDBConnection;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class MysqlDataSource extends AbstractDataSource {
 
     public MysqlDataSource(String propertyName) {
@@ -59,6 +61,23 @@ public class MysqlDataSource extends AbstractDataSource {
                 e.printStackTrace();
             }
             return Collections.EMPTY_LIST;
+        }
+
+        @Override
+        public Object executeWithoutException(String sql) {
+            try {
+                return execute(sql);
+            } catch (SQLException e) {
+                log.error("executeWithoutException error, sql:" + sql, e);
+            }
+            return new ArrayList[0];
+        }
+
+        @Override
+        public Object executeWithClose(String sql) {
+            Object result = executeWithoutException(sql);
+            this.close();
+            return result;
         }
     }
 }

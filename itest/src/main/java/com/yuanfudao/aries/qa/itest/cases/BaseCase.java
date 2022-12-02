@@ -1,11 +1,16 @@
 package com.yuanfudao.aries.qa.itest.cases;
 
+import com.yuanfudao.aries.qa.btest.db.IDBConnection;
+import com.yuanfudao.aries.qa.btest.db.IDataSource;
 import com.yuanfudao.aries.qa.btest.logging.LogConfig;
 import com.yuanfudao.aries.qa.btest.util.StringUtil;
+import com.yuanfudao.aries.qa.itest.model.CommonContext;
 import com.yuanfudao.aries.qa.itest.model.User;
 import com.yuanfudao.aries.qa.itest.model.UserContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
+import org.springframework.util.ObjectUtils;
 import org.testng.ITestContext;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
@@ -14,12 +19,14 @@ import org.testng.annotations.BeforeTest;
 public class BaseCase extends AbstractTestNGSpringContextTests {
 
     public UserContext userContext;
+    @Autowired
+    private CommonContext commonContext;
 
     static {
         // 设置logback配置文件
-        String envType = System.getProperty("ENV_TYPE");
+        String envType = System.getProperty("ENV_TYPE", "test");
         System.setProperty("logback.configurationFile",
-                LogConfig.class.getResource("/" + envType + "/logback.xml").getPath());
+                LogConfig.class.getResource("/" + envType + "/config/common/logback.xml").getPath());
     }
 
     @BeforeSuite(alwaysRun = true)
@@ -29,7 +36,8 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
         super.springTestContextPrepareTestInstance();
     }
 
-    @BeforeSuite(dependsOnMethods = {"springTestContextPrepareTestInstance"})
+    @BeforeSuite(dependsOnMethods = {"springTestContextPrepareTestInstance"}, alwaysRun = true)
+    @BeforeTest(dependsOnMethods = {"springTestContextPrepareTestInstance"}, alwaysRun = true)
     public void beforeSuite(ITestContext context) {
 
         User.Device device = User.Device.builder()
@@ -57,6 +65,14 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
                 .build();
 
         userContext = new UserContext(user, env, device, app);
+        userContext.setUser(user.isValid() ? user :
+                user.getTag() == null ? new User() : commonContext.getUserMap().get(user.getTag()));
+        userContext.setEnv(env.isValid() ? env :
+                env.getTag() == null ? new User.Env() : commonContext.getEnvMap().get(env.getTag()));
+        userContext.setDevice(device.isValid() ? device :
+                device.getTag() == null ? new User.Device() : commonContext.getDeviceMap().get(device.getTag()));
+        userContext.setApp(app.isValid() ? app :
+                app.getTag() == null ? new User.App() : commonContext.getAppMap().get(app.getTag()));
         context.getSuite().setAttribute("userContext", userContext);
     }
 
@@ -67,5 +83,39 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public User getUser(String userTag) {
+        if (userContext.getUser() != null && userContext.getUser().getTag().equals(userTag)) {
+            return userContext.getUser();
+        }
+        if (commonContext != null && !ObjectUtils.isEmpty(commonContext.getUserMap())
+                && commonContext.getUserMap().containsKey(userTag)) {
+            return commonContext.getUserMap().get(userTag);
+        }
+        User user = new User();
+        user.setTag(userTag);
+        return user;
+    }
+
+    public User.Device getDevice(String deviceTag) {
+        return null;
+    }
+
+    public IDataSource getDataSource(String dbTag) {
+        if (commonContext.getMysqlDataSourceMap() != null
+                && !ObjectUtils.isEmpty(commonContext.getMysqlDataSourceMap())
+        ) {
+            return commonContext.getMysqlDataSourceMap().getOrDefault(dbTag, null);
+        }
+        return null;
+    }
+
+    public IDBConnection getConnection(String dbTag) {
+        IDataSource dataSource = getDataSource(dbTag);
+        if (dataSource != null) {
+            return dataSource.getConnection();
+        }
+        return null;
     }
 }

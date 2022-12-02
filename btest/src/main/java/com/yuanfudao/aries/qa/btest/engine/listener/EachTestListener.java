@@ -6,9 +6,9 @@ import org.testng.IInvokedMethodListener;
 import org.testng.ITestResult;
 import org.testng.internal.TestResult;
 
-public class EachTestListener implements IInvokedMethodListener {
+public interface EachTestListener extends IInvokedMethodListener {
 
-    public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
+    default void afterInvocation(IInvokedMethod method, ITestResult testResult) {
         if (method.isTestMethod()) {
             String m = MethodBasedAssert.printMsg();
             if (!m.equals("")) {

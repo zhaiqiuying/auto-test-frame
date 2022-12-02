@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+@Deprecated
 public class JavasistUtil {
 
     public static void addAnnotationToMethod(Class<?> clazz, String methodName, Class<?> annotationClass,
