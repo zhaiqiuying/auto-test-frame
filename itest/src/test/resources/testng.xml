@@ -2,7 +2,7 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 <suite name="Tests" verbose="5" parallel="methods" thread-count="5">
   <listeners>
-    <listener class-name="com.yuanfudao.aries.qa.itest.listener.FinishListener"></listener>
+    <listener class-name="com.example.qa.itest.listener.FinishListener"></listener>
   </listeners>
   <test name="Test2">
     <groups>
@@ -11,7 +11,7 @@
       </run>
     </groups>
     <classes>
-      <class name="com.yuanfudao.aries.qa.itest.SampleTestNgTest"/>
+      <class name="com.example.qa.itest.SampleTestNgTest"/>
     </classes>
   </test>
 </suite>

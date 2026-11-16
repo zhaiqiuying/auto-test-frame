@@ -3,11 +3,11 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>com.yuanfudao.aries.qa.auto-test</groupId>
+        <groupId>com.example.qa.auto-test</groupId>
         <artifactId>auto-test-frame</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <groupId>com.yuanfudao.aries.qa.auto-test</groupId>
+    <groupId>com.example.qa.auto-test</groupId>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>btest</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -17,28 +17,49 @@
         <javassist.version>3.20.0-GA</javassist.version>
         <byte-buddy-agent.version>1.10.19</byte-buddy-agent.version>
         <alibaba-druid.version>1.2.8</alibaba-druid.version>
-        <hadoop-common.version>2.9.2</hadoop-common.version>
         <everit.version>1.5.1</everit.version>
         <jayway.jsonpath.version>2.4.0</jayway.jsonpath.version>
+        <json.version>20231013</json.version>
         <yaml.version>1.26</yaml.version>
     </properties>
 
     <dependencies>
+        <!-- Spring 上下文/测试支持（替代内网 commons2-spring），版本由 spring-boot-starter-parent 管理 -->
         <dependency>
-            <groupId>com.fenbi</groupId>
-            <artifactId>fenbi-rpc-common</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fenbi</groupId>
-            <artifactId>commons-thrift</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+        </dependency>
+        <!-- HTTP 请求 -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+        <!-- 字符串/编码工具（替代内网 commons-lang 与 MD5Utils） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fenbi</groupId>
-            <artifactId>commons2-spring</artifactId>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+        <!-- JSON 序列化 -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fenbi</groupId>
-            <artifactId>commons-lang</artifactId>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>${json.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -86,17 +107,6 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>${hadoop-common.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

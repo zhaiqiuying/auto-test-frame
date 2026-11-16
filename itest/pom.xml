@@ -3,19 +3,19 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>com.yuanfudao.aries.qa.auto-test</groupId>
+        <groupId>com.example.qa.auto-test</groupId>
         <artifactId>auto-test-frame</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.yuanfudao.aries.qa.auto-test</groupId>
+    <groupId>com.example.qa.auto-test</groupId>
     <artifactId>itest</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
-            <groupId>com.yuanfudao.aries.qa.auto-test</groupId>
+            <groupId>com.example.qa.auto-test</groupId>
             <artifactId>btest</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
