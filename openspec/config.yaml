@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Language: zh-CN
+  All artifacts must be written in zh-CN.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  ## 项目背景
+  auto-test-frame 是一套 Java 8 / Maven 多模块的接口自动化测试框架，纯公共依赖，可直接 `mvn -B clean test` 构建。
+
+  - btest（框架层）：TestNG 引擎扩展（Retry 重试、DataProvider 数据驱动、Listener）、DB 抽象（DataSourceFactory + Druid）、断言（AssertUtil）、监控通知
+  - itest（接口测试层）：BaseCase 用例基类、CommonService 请求封装、User/Env/App/Device 上下文模型
+  - 包名统一 `com.example.qa.{btest,itest}`，Maven groupId 为 `com.example.qa.auto-test`
+  - 父 POM 为 spring-boot-starter-parent 2.7.5；TestNG 7.1.0；Java 8
+  - 资源按 `/{ENV_TYPE}/` 环境目录组织（cases/config/data），ENV_TYPE 由系统属性注入
+  - 用例扩展方式：继承 itest 的 BaseCase → service 封装请求 → AssertUtil 断言；suite 参数以 `execute_*` 前缀注入
+
+  ## 设计约定
+  - 新增框架能力优先做成「注解 + 注册表」形式，用例侧零侵入
+  - 涉及框架行为改动时，同步更新 README 对应章节
+  - 每份 change 的 tasks 必须包含构建验证步骤（`mvn -B clean test`）
+
+rules:
+  tasks:
+    - 任务粒度控制在一小时内可完成
+    - 至少包含一条构建验证任务

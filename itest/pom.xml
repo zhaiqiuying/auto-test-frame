@@ -13,11 +13,29 @@
     <artifactId>itest</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <properties>
+        <jedis.version>4.4.3</jedis.version>
+        <jedis-mock.version>1.1.21</jedis-mock.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.example.qa.auto-test</groupId>
             <artifactId>btest</artifactId>
             <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <!-- 显式声明 Jedis 版本，避免 test-data-provider 传递依赖引入旧版 jedis 3.x -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>${jedis.version}</version>
+        </dependency>
+        <!-- Redis Mock（仅测试用，纯 Java 实现，跨平台） -->
+        <dependency>
+            <groupId>com.github.fppt</groupId>
+            <artifactId>jedis-mock</artifactId>
+            <version>${jedis-mock.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

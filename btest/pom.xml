@@ -21,6 +21,8 @@
         <jayway.jsonpath.version>2.4.0</jayway.jsonpath.version>
         <json.version>20231013</json.version>
         <yaml.version>1.26</yaml.version>
+        <jedis.version>4.4.3</jedis.version>
+        <jedis-mock.version>1.1.21</jedis-mock.version>
     </properties>
 
     <dependencies>
@@ -133,6 +135,19 @@
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>${yaml.version}</version>
+        </dependency>
+        <!-- Redis 客户端 -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>${jedis.version}</version>
+        </dependency>
+        <!-- Redis Mock（仅测试用，纯 Java 实现，跨平台） -->
+        <dependency>
+            <groupId>com.github.fppt</groupId>
+            <artifactId>jedis-mock</artifactId>
+            <version>${jedis-mock.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

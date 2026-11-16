@@ -1,6 +1,7 @@
 package com.example.qa.btest.db;
 
 import com.example.qa.btest.db.mysql.MysqlDataSource;
+import com.example.qa.btest.db.redis.RedisDataSource;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.sql.SQLException;
@@ -40,8 +41,13 @@ public class DataSourceFactory {
     public static IDataSource createDataSource(Map dataBaseConf) {
         IDataSource dataSource = null;
         String url = (String) dataBaseConf.getOrDefault("url", "");
-        if (url.contains("mysql")) {
+        if (url.contains("redis")) {
+            dataSource = new RedisDataSource(dataBaseConf);
+        } else if (url.contains("mysql")) {
             dataSource = new MysqlDataSource(dataBaseConf);
+        } else if (url.isEmpty() && dataBaseConf.containsKey("host") && !dataBaseConf.containsKey("user")) {
+            // 无 url 但有 host 且无 MySQL 特有的 user 字段，按 Redis 处理
+            dataSource = new RedisDataSource(dataBaseConf);
         }
         return dataSource;
     }

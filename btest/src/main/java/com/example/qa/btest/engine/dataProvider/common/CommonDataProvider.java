@@ -3,6 +3,7 @@ package com.example.qa.btest.engine.dataProvider.common;
 import com.github.superproxy.testdataprovider.Path;
 import com.example.qa.btest.engine.dataProvider.csv.CsvDataProvider;
 import com.example.qa.btest.engine.dataProvider.mysql.MysqlDataProvider;
+import com.example.qa.btest.engine.dataProvider.redis.RedisDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.ITestContext;
@@ -21,6 +22,7 @@ public class CommonDataProvider {
     static {
         register(new MysqlDataProvider());
         register(new CsvDataProvider());
+        register(new RedisDataProvider());
     }
 
     public static void register(DataProvider dataProvider) {
@@ -40,6 +42,9 @@ public class CommonDataProvider {
         methodContext.getValueMap().put("url", context.getSuite().getXmlSuite().getParameter("mysql_url"));
         methodContext.getValueMap().put("user", context.getSuite().getXmlSuite().getParameter("mysql_user"));
         methodContext.getValueMap().put("password", context.getSuite().getXmlSuite().getParameter("mysql_password"));
+        methodContext.getValueMap().put("redis_host", context.getSuite().getXmlSuite().getParameter("redis_host"));
+        methodContext.getValueMap().put("redis_port", context.getSuite().getXmlSuite().getParameter("redis_port"));
+        methodContext.getValueMap().put("redis_password", context.getSuite().getXmlSuite().getParameter("redis_password"));
         LOGGER.debug("methodContext:{}", methodContext);
         for (Annotation annotation : annotations) {
             Class c = annotation.annotationType();

@@ -118,4 +118,21 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
         }
         return null;
     }
+
+    public IDataSource getRedisDataSource(String tag) {
+        if (commonContext.getRedisDataSourceMap() != null
+                && !ObjectUtils.isEmpty(commonContext.getRedisDataSourceMap())
+        ) {
+            return commonContext.getRedisDataSourceMap().getOrDefault(tag, null);
+        }
+        return null;
+    }
+
+    public IDBConnection getRedisConnection(String tag) {
+        IDataSource dataSource = getRedisDataSource(tag);
+        if (dataSource != null) {
+            return dataSource.getConnection();
+        }
+        return null;
+    }
 }
