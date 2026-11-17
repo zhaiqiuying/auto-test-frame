@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# ──────────────────────────────────────────────────────────────
+# Git pre-commit hook — 本地确定性防线
+#
+# 功能：
+#   1. 密钥扫描（禁止提交 API Key / Token / Password）
+#   2. 编译检查（javac -Xlint，提交前快速验证语法正确）
+#   3. SpotBugs High 级别检查（阻断高危 bug）
+#   4. 残留禁止模式检查（printStackTrace / EMPTY_LIST / System.out）
+#
+# 安装：bash scripts/install-hooks.sh
+# 卸载：rm .git/hooks/pre-commit
+# ──────────────────────────────────────────────────────────────
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+fail() {
+  echo -e "${RED}❌ PRE-COMMIT FAILED: $1${NC}"
+  exit 1
+}
+
+pass() {
+  echo -e "${GREEN}✅ $1${NC}"
+}
+
+# 只检查暂存区的 Java 文件
+STAGED_JAVA=$(git diff --cached --name-only --diff-filter=ACM | grep '\.java$' || true)
+STAGED_ALL=$(git diff --cached --name-only --diff-filter=ACM || true)
+
+if [ -z "$STAGED_ALL" ]; then
+  pass "No staged files, skipping checks"
+  exit 0
+fi
+
+# ─── 1. 密钥扫描 ──────────────────────────────────────────────
+echo "🔍 Checking for secrets..."
+
+SECRET_PATTERONS=(
+  '(sk-[A-Za-z0-9]{20,})'
+  '(password\s*=\s*["\x27][^"\x27]{6,}["\x27])'
+  '(secret\s*=\s*["\x27][^"\x27]{6,}["\x27])'
+  '(api[_-]?key\s*=\s*["\x27][^"\x27]{6,}["\x27])'
+  '(token\s*=\s*["\x27][^"\x27]{6,}["\x27])'
+)
+
+for file in $STAGED_ALL; do
+  if [ ! -f "$file" ]; then continue; fi
+  for pattern in "${SECRET_PATTERONS[@]}"; do
+    if grep -nE "$pattern" "$file" 2>/dev/null; then
+      fail "Suspected secret in $file (pattern: $pattern)"
+    fi
+  done
+done
+pass "No secrets detected"
+
+# ─── 2. 禁止模式检查 ──────────────────────────────────────────
+if [ -n "$STAGED_JAVA" ]; then
+  echo "🔍 Checking forbidden patterns in Java files..."
+
+  FORBIDDEN_CHECKS=(
+    'e\.printStackTrace():printStackTrace() — use @Slf4j log.error instead'
+    'System\.out\.println:System.out.println — use logger instead'
+    'System\.err\.println:System.err.println — use logger instead'
+    'Collections\.EMPTY_LIST:Collections.EMPTY_LIST — use Collections.emptyList() instead'
+    'Collections\.EMPTY_MAP:Collections.EMPTY_MAP — use Collections.emptyMap() instead'
+    '@SuppressWarnings\("unchecked"\):@SuppressWarnings("unchecked") — fix raw types instead'
+  )
+
+  for file in $STAGED_JAVA; do
+    if [ ! -f "$file" ]; then continue; fi
+    for check in "${FORBIDDEN_CHECKS[@]}"; do
+      pattern="${check%%:*}"
+      message="${check#*:}"
+      if grep -nE "$pattern" "$file" 2>/dev/null; then
+        fail "Forbidden pattern in $file: $message"
+      fi
+    done
+  done
+  pass "No forbidden patterns"
+fi
+
+# ─── 3. 编译检查（快速，仅编译不测试）──────────────────────────
+if [ -n "$STAGED_JAVA" ]; then
+  echo "🔍 Compiling (javac -Xlint)..."
+  if mvn -B -q compile 2>&1; then
+    pass "Compilation OK"
+  else
+    fail "Compilation failed — fix errors before committing"
+  fi
+fi
+
+# ─── 4. SpotBugs High 级别检查 ────────────────────────────────
+if [ -n "$STAGED_JAVA" ]; then
+  echo "🔍 Running SpotBugs (High severity only)..."
+  if mvn -B -Pci -q spotbugs:check 2>&1; then
+    pass "SpotBugs: no High severity issues"
+  else
+    fail "SpotBugs found High severity issues — fix before committing"
+  fi
+fi
+
+echo ""
+pass "All pre-commit checks passed 🎉"

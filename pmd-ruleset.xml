@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PMD 规则集 — Layer 1 静态分析
+  检查范围：圈复杂度、未使用代码、空异常处理、低效代码
+  原则：只保留高信噪比规则，避免大量噪音告警
+
+  命名规范由 Checkstyle 覆盖（checkstyle.xml），PMD 不重复检查命名。
+  CI 门禁：-Pci profile 下 failOnViolation=true，priority <= 2 的违规阻断构建
+-->
+<ruleset name="auto-test-frame"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd"
+         xsi:noNamespaceSchemaLocation="https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+  <description>auto-test-frame PMD 规则集</description>
+
+  <!-- 命名规范：由 Checkstyle 覆盖，PMD 不重复检查 -->
+  <rule ref="category/java/codestyle.xml/ClassNamingConventions"/>
+  <rule ref="category/java/codestyle.xml/MethodNamingConventions"/>
+  <!-- FieldNamingConventions / VariableNamingConventions 已移除：与 Checkstyle MemberName/ParameterName 重复，且对 Lombok @Slf4j log 字段误报 -->
+
+  <!-- 圈复杂度 -->
+  <rule ref="category/java/design.xml/CyclomaticComplexity">
+    <properties>
+      <property name="methodReportLevel" value="15"/>
+      <property name="classReportLevel" value="50"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/ExcessiveMethodLength">
+    <properties>
+      <property name="minimum" value="80"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/ExcessiveParameterList">
+    <properties>
+      <property name="minimum" value="7"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/ExcessiveClassLength">
+    <properties>
+      <property name="minimum" value="500"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/TooManyMethods">
+    <properties>
+      <property name="maxmethods" value="20"/>
+    </properties>
+  </rule>
+
+  <!-- 未使用代码 -->
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+  <rule ref="category/java/bestpractices.xml/UnusedFormalParameter"/>
+  <rule ref="category/java/bestpractices.xml/UnusedImports"/>
+
+  <!-- 空代码块 -->
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+  <rule ref="category/java/errorprone.xml/EmptyIfStmt"/>
+  <rule ref="category/java/errorprone.xml/EmptyWhileStmt"/>
+  <rule ref="category/java/errorprone.xml/EmptyTryBlock"/>
+  <rule ref="category/java/errorprone.xml/EmptyFinallyBlock"/>
+
+  <!-- 异常处理：AvoidCatchingThrowable 排除断言工具类（测试框架需要捕获所有异常） -->
+  <rule ref="category/java/errorprone.xml/AvoidCatchingThrowable">
+    <properties>
+      <property name="violationSuppressXPath"
+                value="//ClassOrInterfaceDeclaration[@Image='AssertUtil' or @Image='MethodBasedAssert']"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/bestpractices.xml/JUnitAssertionsShouldIncludeMessage"/>
+
+  <!-- 性能 -->
+  <rule ref="category/java/performance.xml/UseStringBufferForStringAppends"/>
+  <rule ref="category/java/performance.xml/InefficientStringBuffering"/>
+  <rule ref="category/java/performance.xml/UseArrayListInsteadOfVector"/>
+  <rule ref="category/java/performance.xml/SimplifyStartsWith"/>
+
+  <!-- 安全 -->
+  <rule ref="category/java/bestpractices.xml/SystemPrintln"/>
+
+</ruleset>

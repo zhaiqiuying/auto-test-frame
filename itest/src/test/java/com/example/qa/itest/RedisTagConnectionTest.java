@@ -28,6 +28,10 @@ import static org.testng.Assert.*;
 public class RedisTagConnectionTest {
 
     private static final int REDIS_PORT = 6383;
+    private static final String TAG_CACHE_DB = "cache_db";
+    private static final String KEY_REDISES = "redises";
+    private static final String KEY_TAG = "tag";
+
     private static RedisServer redisServer;
     private static CommonContext commonContext;
 
@@ -38,12 +42,20 @@ public class RedisTagConnectionTest {
         // 模拟 Config.loadContext 中 redises 段加载逻辑
         commonContext = new CommonContext();
         String contextFile = this.getClass().getResource("/test/data/common/context.yml").getPath();
-        Map map = YamlUtil.load(contextFile);
-        if (map != null && map.containsKey("redises")) {
-            ((List) map.get("redises")).forEach(item -> {
-                IDataSource dataSource = DataSourceFactory.getDataSource((Map) item);
+        Map<String, Object> map = YamlUtil.load(contextFile);
+        if (map != null && map.containsKey(KEY_REDISES)) {
+            ((List<?>) map.get(KEY_REDISES)).forEach(item -> {
+                if (!(item instanceof Map)) {
+                    return;
+                }
+                Map<?, ?> rawMap = (Map<?, ?>) item;
+                Map<String, Object> itemMap = new java.util.HashMap<>();
+                for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                    itemMap.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+                IDataSource dataSource = DataSourceFactory.getDataSource(itemMap);
                 commonContext.getRedisDataSourceMap()
-                        .put((String) ((Map<?, ?>) item).get("tag"), dataSource);
+                        .put(String.valueOf(itemMap.get(KEY_TAG)), dataSource);
             });
         }
     }
@@ -61,7 +73,7 @@ public class RedisTagConnectionTest {
     @Test
     public void testRedisDataSourceMapContainsTag() {
         assertNotNull(commonContext.getRedisDataSourceMap(), "redisDataSourceMap 不应为 null");
-        assertTrue(commonContext.getRedisDataSourceMap().containsKey("cache_db"),
+        assertTrue(commonContext.getRedisDataSourceMap().containsKey(TAG_CACHE_DB),
                 "redisDataSourceMap 应包含 tag 'cache_db'");
     }
 
@@ -70,7 +82,7 @@ public class RedisTagConnectionTest {
      */
     @Test
     public void testGetRedisConnectionReturnsNonNull() {
-        IDataSource dataSource = commonContext.getRedisDataSourceMap().get("cache_db");
+        IDataSource dataSource = commonContext.getRedisDataSourceMap().get(TAG_CACHE_DB);
         assertNotNull(dataSource, "tag 'cache_db' 的数据源不应为 null");
 
         IDBConnection connection = dataSource.getConnection();
@@ -83,19 +95,19 @@ public class RedisTagConnectionTest {
      */
     @Test
     public void testSetAndGetViaTagConnection() throws Exception {
-        IDataSource dataSource = commonContext.getRedisDataSourceMap().get("cache_db");
+        IDataSource dataSource = commonContext.getRedisDataSourceMap().get(TAG_CACHE_DB);
         IDBConnection conn = dataSource.getConnection();
         try {
             // SET
-            List setResult = (List) conn.execute("SET tag_key tag_value");
+            List<?> setResult = (List<?>) conn.execute("SET tag_key tag_value");
             assertEquals(setResult.size(), 1, "SET 应返回 1 行");
-            List setRow = (List) setResult.get(0);
+            List<?> setRow = (List<?>) setResult.get(0);
             assertEquals(setRow.get(0), "OK", "SET 应返回 OK");
 
             // GET
-            List getResult = (List) conn.execute("GET tag_key");
+            List<?> getResult = (List<?>) conn.execute("GET tag_key");
             assertEquals(getResult.size(), 1, "GET 应返回 1 行");
-            List getRow = (List) getResult.get(0);
+            List<?> getRow = (List<?>) getResult.get(0);
             assertEquals(getRow.get(0), "tag_value", "GET 应返回设置的值");
         } finally {
             conn.close();

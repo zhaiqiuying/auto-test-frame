@@ -5,7 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class CsvUtil {
 
     public static String[][] read(String filePath) {
@@ -37,15 +39,15 @@ public class CsvUtil {
                 }
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log.error("CSV file not found: {}", filePath, e);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error reading CSV file: {}", filePath, e);
         } finally {
             if (br != null) {
                 try {
                     br.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("Error closing BufferedReader for: {}", filePath, e);
                 }
             }
         }

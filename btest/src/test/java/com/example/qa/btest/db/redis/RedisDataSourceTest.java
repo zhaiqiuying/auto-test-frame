@@ -79,16 +79,16 @@ public class RedisDataSourceTest {
         IDBConnection conn = dataSource.getConnection();
         try {
             // SET key value → 返回单行单列 "OK"
-            List setResult = (List) conn.execute("SET test_key test_value");
+            List<?> setResult = (List<?>) conn.execute("SET test_key test_value");
             assertEquals(setResult.size(), 1, "SET 应返回 1 行");
-            List setRow = (List) setResult.get(0);
+            List<?> setRow = (List<?>) setResult.get(0);
             assertEquals(setRow.size(), 1, "SET 应返回单列");
             assertEquals(setRow.get(0), "OK", "SET 应返回状态 OK");
 
             // GET key → 返回单行单列 value
-            List getResult = (List) conn.execute("GET test_key");
+            List<?> getResult = (List<?>) conn.execute("GET test_key");
             assertEquals(getResult.size(), 1, "GET 应返回 1 行");
-            List getRow = (List) getResult.get(0);
+            List<?> getRow = (List<?>) getResult.get(0);
             assertEquals(getRow.size(), 1, "GET 应返回单列");
             assertEquals(getRow.get(0), "test_value", "GET 应返回设置的值");
         } finally {
@@ -107,17 +107,17 @@ public class RedisDataSourceTest {
             conn.execute("HSET test_hash f2 v2");
 
             // HGETALL → 每对 field-value 为一行（两列）
-            List result = (List) conn.execute("HGETALL test_hash");
+            List<?> result = (List<?>) conn.execute("HGETALL test_hash");
             assertEquals(result.size(), 2, "HGETALL 应返回 2 行（两个字段）");
 
             for (Object rowObj : result) {
-                List row = (List) rowObj;
+                List<?> row = (List<?>) rowObj;
                 assertEquals(row.size(), 2, "HGETALL 每行应为 2 列（field, value）");
                 String field = (String) row.get(0);
                 String value = (String) row.get(1);
-                if (field.equals("f1")) {
+                if ("f1".equals(field)) {
                     assertEquals(value, "v1", "f1 的值应为 v1");
-                } else if (field.equals("f2")) {
+                } else if ("f2".equals(field)) {
                     assertEquals(value, "v2", "f2 的值应为 v2");
                 } else {
                     fail("未知的 field: " + field);
@@ -138,9 +138,9 @@ public class RedisDataSourceTest {
             conn.execute("SET del_key2 val2");
 
             // DEL key1 key2 → 返回删除数量
-            List result = (List) conn.execute("DEL del_key1 del_key2");
+            List<?> result = (List<?>) conn.execute("DEL del_key1 del_key2");
             assertEquals(result.size(), 1, "DEL 应返回 1 行");
-            List row = (List) result.get(0);
+            List<?> row = (List<?>) result.get(0);
             assertEquals(row.size(), 1, "DEL 应返回单列");
             assertEquals(row.get(0), 2L, "DEL 应返回删除数量 2");
         } finally {
@@ -154,9 +154,9 @@ public class RedisDataSourceTest {
         IDBConnection conn = dataSource.getConnection();
         try {
             conn.execute("SET expire_key val");
-            List result = (List) conn.execute("EXPIRE expire_key 60");
+            List<?> result = (List<?>) conn.execute("EXPIRE expire_key 60");
             assertEquals(result.size(), 1, "EXPIRE 应返回 1 行");
-            List row = (List) result.get(0);
+            List<?> row = (List<?>) result.get(0);
             assertEquals(row.size(), 1, "EXPIRE 应返回单列");
             assertEquals(row.get(0), 1L, "EXPIRE 应返回 1（成功设置过期时间）");
         } finally {
@@ -170,17 +170,17 @@ public class RedisDataSourceTest {
         IDBConnection conn = dataSource.getConnection();
         try {
             // LPUSH list a b c → 返回列表长度
-            List pushResult = (List) conn.execute("LPUSH test_list a b c");
+            List<?> pushResult = (List<?>) conn.execute("LPUSH test_list a b c");
             assertEquals(pushResult.size(), 1, "LPUSH 应返回 1 行");
-            List pushRow = (List) pushResult.get(0);
+            List<?> pushRow = (List<?>) pushResult.get(0);
             assertEquals(pushRow.size(), 1, "LPUSH 应返回单列");
             assertEquals(pushRow.get(0), 3L, "LPUSH 应返回列表长度 3");
 
             // LRANGE list 0 -1 → 返回所有元素，每元素一行
-            List rangeResult = (List) conn.execute("LRANGE test_list 0 -1");
+            List<?> rangeResult = (List<?>) conn.execute("LRANGE test_list 0 -1");
             assertEquals(rangeResult.size(), 3, "LRANGE 应返回 3 行（3 个元素）");
             for (Object rowObj : rangeResult) {
-                List row = (List) rowObj;
+                List<?> row = (List<?>) rowObj;
                 assertEquals(row.size(), 1, "LRANGE 每行应为单列");
             }
         } finally {
@@ -215,9 +215,9 @@ public class RedisDataSourceTest {
         // 再次 getConnection 应能正常使用（连接池归还后可获取新连接）
         IDBConnection newConn = dataSource.getConnection();
         try {
-            List getResult = (List) newConn.execute("GET close_key");
+            List<?> getResult = (List<?>) newConn.execute("GET close_key");
             assertEquals(getResult.size(), 1, "executeWithClose 后应能重新获取连接");
-            List row = (List) getResult.get(0);
+            List<?> row = (List<?>) getResult.get(0);
             assertEquals(row.get(0), "close_val", "之前设置的值应仍存在");
         } finally {
             newConn.close();
@@ -234,7 +234,7 @@ public class RedisDataSourceTest {
         IDBConnection conn2 = dataSource.getConnection();
         assertNotNull(conn2, "close 后应能获取新连接");
         try {
-            List result = (List) conn2.execute("SET reacquire_key reacquire_val");
+            List<?> result = (List<?>) conn2.execute("SET reacquire_key reacquire_val");
             assertNotNull(result, "close 后通过新连接执行命令应成功");
         } finally {
             conn2.close();

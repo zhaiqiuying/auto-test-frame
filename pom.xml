@@ -25,6 +25,21 @@
     <maven.compiler.target>8</maven.compiler.target>
     <!-- spring-boot-starter-parent 默认资源占位符是 @..@，保持原有 ${..} 兼容 -->
     <resource.delimiter>${}</resource.delimiter>
+    <!-- 静态分析插件版本 -->
+    <spotbugs.version>4.7.3</spotbugs.version>
+    <spotbugs-maven.version>4.7.3.6</spotbugs-maven.version>
+    <findsecbugs.version>1.12.0</findsecbugs.version>
+    <pmd.version>3.21.0</pmd.version>
+    <checkstyle.version>3.3.0</checkstyle.version>
+    <checkstyle.config>checkstyle.xml</checkstyle.config>
+    <pmd.ruleset>pmd-ruleset.xml</pmd.ruleset>
+    <spotbugs.exclude>spotbugs-exclude.xml</spotbugs.exclude>
+    <!-- 默认不阻断构建，CI 环境 -Pci 激活门禁 -->
+    <spotbugs.failOnError>false</spotbugs.failOnError>
+    <spotbugs.threshold>Low</spotbugs.threshold>
+    <pmd.failOnViolation>false</pmd.failOnViolation>
+    <pmd.failurePriority>5</pmd.failurePriority>
+    <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
   </properties>
 
   <build>
@@ -37,7 +52,90 @@
           <target>8</target>
         </configuration>
       </plugin>
+      <!-- SpotBugs: 确定性 Bug 检测（空指针、资源泄漏、并发问题） -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-maven.version}</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>${spotbugs.threshold}</threshold>
+          <failOnError>${spotbugs.failOnError}</failOnError>
+          <excludeFilterFile>${maven.multiModuleProjectDirectory}/${spotbugs.exclude}</excludeFilterFile>
+          <xmlOutput>true</xmlOutput>
+          <xmlOutputDirectory>${project.build.directory}/spotbugs</xmlOutputDirectory>
+          <plugins>
+            <plugin>
+              <groupId>com.h3xstream.findsecbugs</groupId>
+              <artifactId>findsecbugs-plugin</artifactId>
+              <version>${findsecbugs.version}</version>
+            </plugin>
+          </plugins>
+        </configuration>
+      </plugin>
+      <!-- PMD: 代码规范、圈复杂度、未使用代码 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>${pmd.version}</version>
+        <configuration>
+          <rulesets>
+            <ruleset>${maven.multiModuleProjectDirectory}/${pmd.ruleset}</ruleset>
+          </rulesets>
+          <failOnViolation>${pmd.failOnViolation}</failOnViolation>
+          <failurePriority>${pmd.failurePriority}</failurePriority>
+          <targetJdk>1.8</targetJdk>
+        </configuration>
+      </plugin>
+      <!-- Checkstyle: 代码风格、命名规范、import 顺序 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${checkstyle.version}</version>
+        <configuration>
+          <configLocation>${maven.multiModuleProjectDirectory}/${checkstyle.config}</configLocation>
+          <failOnViolation>${checkstyle.failOnViolation}</failOnViolation>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-maven.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>${pmd.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${checkstyle.version}</version>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <profiles>
+    <!-- CI Profile: 激活严格门禁 -->
+    <!-- SpotBugs: 只阻断 High 级别（生产事故风险） -->
+    <!-- PMD: 只阻断 priority 1-2（高严重性），priority 3+ 只报告 -->
+    <!-- Checkstyle: 阻断所有违规（命名/import/风格是确定性的） -->
+    <profile>
+      <id>ci</id>
+      <properties>
+        <spotbugs.failOnError>true</spotbugs.failOnError>
+        <spotbugs.threshold>High</spotbugs.threshold>
+        <pmd.failOnViolation>true</pmd.failOnViolation>
+        <pmd.failurePriority>2</pmd.failurePriority>
+        <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

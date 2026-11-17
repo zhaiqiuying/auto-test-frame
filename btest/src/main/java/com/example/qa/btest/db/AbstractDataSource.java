@@ -3,8 +3,7 @@ package com.example.qa.btest.db;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidDataSourceFactory;
 import com.example.qa.btest.util.PropertyUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -12,9 +11,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
+@Slf4j
 public abstract class AbstractDataSource implements IDataSource {
-
-    private static final Logger log = LoggerFactory.getLogger(AbstractDataSource.class);
 
     public DataSource getDataSource() {
         return dataSource;
@@ -43,7 +41,7 @@ public abstract class AbstractDataSource implements IDataSource {
             druidDataSource.setBreakAfterAcquireFailure(true);
             dataSource = druidDataSource;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to create Druid data source", e);
         }
         return dataSource;
     }
@@ -52,7 +50,7 @@ public abstract class AbstractDataSource implements IDataSource {
         try {
             return dataSource.getConnection();
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Failed to get connection from data source", e);
         }
         return null;
     }

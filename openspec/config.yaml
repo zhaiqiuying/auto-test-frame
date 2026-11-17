@@ -20,7 +20,30 @@ context: |
   - 涉及框架行为改动时，同步更新 README 对应章节
   - 每份 change 的 tasks 必须包含构建验证步骤（`mvn -B clean test`）
 
+  ## 编码后自检清单
+  每个 task 实现完成后、标记 `[x]` 前，对照以下检查清单逐项确认。
+  清单来源于 code-review 评审规则（`.codebuddy/skills/code-review/references/`）。
+  阿里手册和 coding-standards.md 已覆盖的确定性规则不再重复列出，仅列出需要语义判断的检查项。
+
+  ### 高风险项（必须自检通过）
+  - [ ] 死代码：无逻辑分支中的不可达代码（编译器能检测的不算）、无大段注释代码（PMD 已覆盖的不算）
+  - [ ] 逻辑错误：if 条件逻辑正确、边界检查无误、无死循环/递归
+  - [ ] NPE 风险：调用链返回值使用前判空（需跨文件确认数据来源是否可能为 null）
+  - [ ] 异常处理：RuntimeException 附加上下文消息、finally 块不抛异常掩盖原始异常
+
+  ### 中风险项（建议自检）
+  - [ ] 性能：循环内无数据库查询（需确认方法调用链）、无 N+1 查询、大数据集有分页
+  - [ ] 并发安全：check-then-act 有同步、DCL 字段有 volatile（需确认调用上下文是否多线程）
+  - [ ] SOLID 原则：单一职责、开闭原则、接口契约一致
+  - [ ] 测试覆盖：核心逻辑有测试、边界场景有覆盖、测试可独立运行
+
+  > 阿里手册和 coding-standards.md 已覆盖的确定性规则（switch break、返回空集合、
+  > PreparedStatement、ConcurrentHashMap、e.printStackTrace、硬编码凭据、类型强转 instanceof、
+  > 日志 @Slf4j 等）编码时遵循即可，此处不重复列出。
+
 rules:
   tasks:
     - 任务粒度控制在一小时内可完成
     - 至少包含一条构建验证任务
+  code:
+    

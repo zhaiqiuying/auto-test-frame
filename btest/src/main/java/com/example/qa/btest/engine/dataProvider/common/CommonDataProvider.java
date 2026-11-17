@@ -4,8 +4,7 @@ import com.github.superproxy.testdataprovider.Path;
 import com.example.qa.btest.engine.dataProvider.csv.CsvDataProvider;
 import com.example.qa.btest.engine.dataProvider.mysql.MysqlDataProvider;
 import com.example.qa.btest.engine.dataProvider.redis.RedisDataProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.testng.ITestContext;
 
 import java.lang.annotation.Annotation;
@@ -13,11 +12,20 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class CommonDataProvider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommonDataProvider.class);
+    private static final String KEY_URL = "url";
+    private static final String KEY_USER = "user";
+    private static final String KEY_PASSWORD = "password";
+    private static final String KEY_REDIS_HOST = "redis_host";
+    private static final String KEY_REDIS_PORT = "redis_port";
+    private static final String KEY_REDIS_PASSWORD = "redis_password";
+    private static final String KEY_MYSQL_URL = "mysql_url";
+    private static final String KEY_MYSQL_USER = "mysql_user";
+    private static final String KEY_MYSQL_PASSWORD = "mysql_password";
 
-    private static Map<Class, DataProvider> dataProviderMap = new HashMap<Class, DataProvider>();
+    private static final Map<Class<?>, DataProvider> dataProviderMap = new HashMap<>();
 
     static {
         register(new MysqlDataProvider());
@@ -39,15 +47,15 @@ public class CommonDataProvider {
     public static Object[][] genData(Method method, ITestContext context) {
         Annotation[] annotations = method.getAnnotations();
         MethodContext methodContext = testObject(annotations);
-        methodContext.getValueMap().put("url", context.getSuite().getXmlSuite().getParameter("mysql_url"));
-        methodContext.getValueMap().put("user", context.getSuite().getXmlSuite().getParameter("mysql_user"));
-        methodContext.getValueMap().put("password", context.getSuite().getXmlSuite().getParameter("mysql_password"));
-        methodContext.getValueMap().put("redis_host", context.getSuite().getXmlSuite().getParameter("redis_host"));
-        methodContext.getValueMap().put("redis_port", context.getSuite().getXmlSuite().getParameter("redis_port"));
-        methodContext.getValueMap().put("redis_password", context.getSuite().getXmlSuite().getParameter("redis_password"));
-        LOGGER.debug("methodContext:{}", methodContext);
+        methodContext.getValueMap().put(KEY_URL, context.getSuite().getXmlSuite().getParameter(KEY_MYSQL_URL));
+        methodContext.getValueMap().put(KEY_USER, context.getSuite().getXmlSuite().getParameter(KEY_MYSQL_USER));
+        methodContext.getValueMap().put(KEY_PASSWORD, context.getSuite().getXmlSuite().getParameter(KEY_MYSQL_PASSWORD));
+        methodContext.getValueMap().put(KEY_REDIS_HOST, context.getSuite().getXmlSuite().getParameter(KEY_REDIS_HOST));
+        methodContext.getValueMap().put(KEY_REDIS_PORT, context.getSuite().getXmlSuite().getParameter(KEY_REDIS_PORT));
+        methodContext.getValueMap().put(KEY_REDIS_PASSWORD, context.getSuite().getXmlSuite().getParameter(KEY_REDIS_PASSWORD));
+        log.debug("methodContext:{}", methodContext);
         for (Annotation annotation : annotations) {
-            Class c = annotation.annotationType();
+            Class<?> c = annotation.annotationType();
             if (dataProviderMap.containsKey(c)) {
                 DataProvider dataProvider = dataProviderMap.get(c);
                 methodContext.setAnnotation(annotation);
