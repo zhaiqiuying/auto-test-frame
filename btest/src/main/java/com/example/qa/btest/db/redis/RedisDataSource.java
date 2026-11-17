@@ -2,8 +2,7 @@ package com.example.qa.btest.db.redis;
 
 import com.example.qa.btest.db.IDBConnection;
 import com.example.qa.btest.db.IDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -17,11 +16,25 @@ import java.util.Map;
  * Redis 数据源实现，通过 JedisPool 管理连接池。
  * 实现 IDataSource 接口，与 MySQL 数据源统一抽象。
  */
+@Slf4j
 public class RedisDataSource implements IDataSource {
 
-    private static final Logger log = LoggerFactory.getLogger(RedisDataSource.class);
+    private static final String REDIS_URL_PREFIX = "redis://";
+    private static final String DEFAULT_HOST = "127.0.0.1";
+    private static final int DEFAULT_PORT = 6379;
+    private static final int DEFAULT_DATABASE = 0;
+    private static final int TIMEOUT_MILLIS = 2000;
 
-    private JedisPool jedisPool;
+    private static final String KEY_URL = "url";
+    private static final String KEY_HOST = "host";
+    private static final String KEY_PORT = "port";
+    private static final String KEY_PASSWORD = "password";
+    private static final String KEY_DATABASE = "database";
+    private static final String KEY_MAX_TOTAL = "maxTotal";
+    private static final String KEY_MAX_IDLE = "maxIdle";
+    private static final String KEY_MAX_WAIT = "maxWait";
+
+    private final JedisPool jedisPool;
 
     /**
      * 通过配置 Map 创建 Redis 数据源。
@@ -30,49 +43,69 @@ public class RedisDataSource implements IDataSource {
      *
      * @param conf Redis 配置 Map
      */
-    public RedisDataSource(Map conf) {
+    public RedisDataSource(Map<String, Object> conf) {
         String host;
         int port;
-        String password;
         int database;
 
         // 支持 url 格式：redis://host:port/db
-        String url = (String) conf.getOrDefault("url", "");
-        if (url.startsWith("redis://")) {
-            String stripped = url.substring("redis://".length());
-            String[] parts = stripped.split("/");
-            String hostPort = parts[0];
-            String[] hp = hostPort.split(":");
-            host = hp[0];
-            port = hp.length > 1 ? Integer.parseInt(hp[1]) : 6379;
-            database = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+        String url = (String) conf.getOrDefault(KEY_URL, "");
+        if (url.startsWith(REDIS_URL_PREFIX)) {
+            String[] parsed = parseRedisUrl(url);
+            host = parsed[0];
+            port = Integer.parseInt(parsed[1]);
+            database = parsed.length > 2 ? Integer.parseInt(parsed[2]) : DEFAULT_DATABASE;
         } else {
-            host = (String) conf.getOrDefault("host", "127.0.0.1");
-            port = conf.containsKey("port") ? Integer.parseInt(String.valueOf(conf.get("port"))) : 6379;
-            database = conf.containsKey("database") ? Integer.parseInt(String.valueOf(conf.get("database"))) : 0;
+            host = (String) conf.getOrDefault(KEY_HOST, DEFAULT_HOST);
+            port = conf.containsKey(KEY_PORT) ? Integer.parseInt(String.valueOf(conf.get(KEY_PORT))) : DEFAULT_PORT;
+            database = conf.containsKey(KEY_DATABASE) ? Integer.parseInt(String.valueOf(conf.get(KEY_DATABASE))) : DEFAULT_DATABASE;
         }
 
-        password = (String) conf.getOrDefault("password", "");
+        String password = (String) conf.getOrDefault(KEY_PASSWORD, "");
 
-        // 连接池配置
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
-        if (conf.containsKey("maxTotal")) {
-            poolConfig.setMaxTotal(Integer.parseInt(String.valueOf(conf.get("maxTotal"))));
-        }
-        if (conf.containsKey("maxIdle")) {
-            poolConfig.setMaxIdle(Integer.parseInt(String.valueOf(conf.get("maxIdle"))));
-        }
-        if (conf.containsKey("maxWait")) {
-            poolConfig.setMaxWaitMillis(Long.parseLong(String.valueOf(conf.get("maxWait"))));
-        }
+        JedisPoolConfig poolConfig = buildPoolConfig(conf);
 
         if (password != null && !password.isEmpty()) {
-            jedisPool = new JedisPool(poolConfig, host, port, 2000, password, database);
+            jedisPool = new JedisPool(poolConfig, host, port, TIMEOUT_MILLIS, password, database);
         } else {
-            jedisPool = new JedisPool(poolConfig, host, port, 2000, null, database);
+            jedisPool = new JedisPool(poolConfig, host, port, TIMEOUT_MILLIS, null, database);
         }
 
         log.info("RedisDataSource initialized: host={}, port={}, database={}", host, port, database);
+    }
+
+    /**
+     * 解析 redis://host:port/db 格式的 URL，返回 [host, port] 或 [host, port, database]。
+     */
+    private String[] parseRedisUrl(String url) {
+        String stripped = url.substring(REDIS_URL_PREFIX.length());
+        String[] parts = stripped.split("/");
+        String hostPort = parts[0];
+        String[] hp = hostPort.split(":");
+        if (hp.length > 2) {
+            return new String[]{hp[0], hp[1]};
+        }
+        if (parts.length > 1) {
+            return new String[]{hp[0], hp[1], parts[1]};
+        }
+        return new String[]{hp[0], hp[1]};
+    }
+
+    /**
+     * 从配置 Map 构建 JedisPoolConfig。
+     */
+    private JedisPoolConfig buildPoolConfig(Map<String, Object> conf) {
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        if (conf.containsKey(KEY_MAX_TOTAL)) {
+            poolConfig.setMaxTotal(Integer.parseInt(String.valueOf(conf.get(KEY_MAX_TOTAL))));
+        }
+        if (conf.containsKey(KEY_MAX_IDLE)) {
+            poolConfig.setMaxIdle(Integer.parseInt(String.valueOf(conf.get(KEY_MAX_IDLE))));
+        }
+        if (conf.containsKey(KEY_MAX_WAIT)) {
+            poolConfig.setMaxWaitMillis(Long.parseLong(String.valueOf(conf.get(KEY_MAX_WAIT))));
+        }
+        return poolConfig;
     }
 
     @Override
@@ -86,9 +119,8 @@ public class RedisDataSource implements IDataSource {
      * 将 Redis 命令字符串（如 "GET key"、"HGETALL key"）解析并执行，
      * 结果统一转换为 List<List<Object>> 格式，与 MySQL 数据源保持一致。
      */
+    @Slf4j
     public static class RedisConnection implements IDBConnection {
-
-        private static final Logger log = LoggerFactory.getLogger(RedisConnection.class);
 
         private Jedis jedis;
 
@@ -118,28 +150,29 @@ public class RedisDataSource implements IDataSource {
          * 命令格式：命令名 + 空格分隔的参数（如 "GET mykey"、"HGETALL myhash"）。
          */
         @Override
-        @SuppressWarnings("unchecked")
-        public List execute(String command) {
+        public List<List<Object>> execute(String command) {
             return executeCommandToList(command);
         }
 
         /**
          * 解析并执行 Redis 命令，返回 List<List<Object>> 格式结果。
          */
-        @SuppressWarnings("unchecked")
-        private List executeCommandToList(String command) {
+        private List<List<Object>> executeCommandToList(String command) {
             String[] parts = command.trim().split("\\s+");
-            if (parts.length == 0) {
-                return Collections.EMPTY_LIST;
+            if (parts.length == 0 || parts[0].isEmpty()) {
+                return Collections.emptyList();
             }
 
             String cmd = parts[0].toUpperCase();
-            List result = new ArrayList();
+            List<List<Object>> result = new ArrayList<>();
 
             try {
                 switch (cmd) {
                     // ---- 字符串操作 ----
                     case "GET": {
+                        if (parts.length < 2) {
+                            return Collections.emptyList();
+                        }
                         String val = jedis.get(parts[1]);
                         if (val != null) {
                             List<Object> row = new ArrayList<>();
@@ -149,6 +182,9 @@ public class RedisDataSource implements IDataSource {
                         break;
                     }
                     case "SET": {
+                        if (parts.length < 2) {
+                            return Collections.emptyList();
+                        }
                         // SET key value
                         String status = jedis.set(parts[1], parts.length > 2 ? parts[2] : "");
                         List<Object> row = new ArrayList<>();
@@ -157,25 +193,34 @@ public class RedisDataSource implements IDataSource {
                         break;
                     }
                     case "DEL": {
+                        if (parts.length < 2) {
+                            return Collections.emptyList();
+                        }
                         // DEL key1 key2 ...
                         String[] keys = new String[parts.length - 1];
                         System.arraycopy(parts, 1, keys, 0, keys.length);
                         Long count = jedis.del(keys);
-                        List<Object> row = new ArrayList<>();
-                        row.add(count);
-                        result.add(row);
+                        List<Object> row2 = new ArrayList<>();
+                        row2.add(count);
+                        result.add(row2);
                         break;
                     }
                     case "EXPIRE": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // EXPIRE key seconds
                         Long ret = jedis.expire(parts[1], Long.parseLong(parts[2]));
-                        List<Object> row = new ArrayList<>();
-                        row.add(ret);
-                        result.add(row);
+                        List<Object> row3 = new ArrayList<>();
+                        row3.add(ret);
+                        result.add(row3);
                         break;
                     }
                     // ---- 哈希操作 ----
                     case "HGET": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // HGET hash field
                         String val = jedis.hget(parts[1], parts[2]);
                         if (val != null) {
@@ -186,14 +231,20 @@ public class RedisDataSource implements IDataSource {
                         break;
                     }
                     case "HSET": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // HSET hash field value
                         Long count = jedis.hset(parts[1], parts[2], parts.length > 3 ? parts[3] : "");
-                        List<Object> row = new ArrayList<>();
-                        row.add(count);
-                        result.add(row);
+                        List<Object> row4 = new ArrayList<>();
+                        row4.add(count);
+                        result.add(row4);
                         break;
                     }
                     case "HGETALL": {
+                        if (parts.length < 2) {
+                            return Collections.emptyList();
+                        }
                         // HGETALL hash → 每对 field-value 为一行（两列）
                         Map<String, String> map = jedis.hgetAll(parts[1]);
                         for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -205,17 +256,23 @@ public class RedisDataSource implements IDataSource {
                         break;
                     }
                     case "HDEL": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // HDEL hash field1 field2 ...
                         String[] fields = new String[parts.length - 2];
                         System.arraycopy(parts, 2, fields, 0, fields.length);
                         Long count = jedis.hdel(parts[1], fields);
-                        List<Object> row = new ArrayList<>();
-                        row.add(count);
-                        result.add(row);
+                        List<Object> row5 = new ArrayList<>();
+                        row5.add(count);
+                        result.add(row5);
                         break;
                     }
                     // ---- 列表操作 ----
                     case "LRANGE": {
+                        if (parts.length < 4) {
+                            return Collections.emptyList();
+                        }
                         // LRANGE key start stop
                         List<String> list = jedis.lrange(parts[1], Long.parseLong(parts[2]), Long.parseLong(parts[3]));
                         for (String item : list) {
@@ -226,23 +283,29 @@ public class RedisDataSource implements IDataSource {
                         break;
                     }
                     case "LPUSH": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // LPUSH key value1 value2 ...
                         String[] values = new String[parts.length - 2];
                         System.arraycopy(parts, 2, values, 0, values.length);
                         Long count = jedis.lpush(parts[1], values);
-                        List<Object> row = new ArrayList<>();
-                        row.add(count);
-                        result.add(row);
+                        List<Object> row6 = new ArrayList<>();
+                        row6.add(count);
+                        result.add(row6);
                         break;
                     }
                     case "RPUSH": {
+                        if (parts.length < 3) {
+                            return Collections.emptyList();
+                        }
                         // RPUSH key value1 value2 ...
                         String[] values = new String[parts.length - 2];
                         System.arraycopy(parts, 2, values, 0, values.length);
                         Long count = jedis.rpush(parts[1], values);
-                        List<Object> row = new ArrayList<>();
-                        row.add(count);
-                        result.add(row);
+                        List<Object> row7 = new ArrayList<>();
+                        row7.add(count);
+                        result.add(row7);
                         break;
                     }
                     default:
@@ -265,18 +328,16 @@ public class RedisDataSource implements IDataSource {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public Object executeWithoutException(String command) {
             try {
                 return execute(command);
             } catch (Exception e) {
-                log.error("executeWithoutException error, command: " + command, e);
+                log.error("executeWithoutException error, command: {}", command, e);
             }
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public Object executeWithClose(String command) {
             Object result = executeWithoutException(command);
             this.close();

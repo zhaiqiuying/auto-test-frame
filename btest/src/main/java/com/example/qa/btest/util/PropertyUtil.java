@@ -3,7 +3,9 @@ package com.example.qa.btest.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class PropertyUtil {
 
     public static Properties loadProperty(String properyName) {
@@ -13,7 +15,7 @@ public class PropertyUtil {
         try {
             properties.load(inputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to load property file: {}", properyName, e);
         }
         return properties;
     }

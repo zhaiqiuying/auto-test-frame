@@ -7,8 +7,6 @@ import com.example.qa.btest.engine.dataProvider.common.DataProvider;
 import com.example.qa.btest.engine.dataProvider.common.MethodContext;
 import com.example.qa.btest.util.ListUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -16,9 +14,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MysqlDataProvider implements DataProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MysqlDataProvider.class);
 
     @Override
     public Class getDataType() {
@@ -49,7 +48,7 @@ public class MysqlDataProvider implements DataProvider {
                 dataSourceConfMap.put("password", password);
             }
             if (StringUtils.isNoneEmpty((String) dataSourceConfMap.get("url"))) {
-                LOGGER.debug("url:{}, user:{}, password:{}, sql:{}", url, user, password, sql);
+                log.debug("url:{}, user:{}, password:{}, sql:{}", url, user, password, sql);
                 try {
                     return getObjects(dataSourceConfMap, sql);
                 } catch (Exception e) {
@@ -67,9 +66,9 @@ public class MysqlDataProvider implements DataProvider {
             IDBConnection connection = dataSource.getConnection();
             try {
                 list = (List) connection.execute(sql);
-                LOGGER.info("get {} data from mysql", list.size());
+                log.info("get {} data from mysql", list.size());
             } catch (SQLException e) {
-                e.printStackTrace();
+                log.error("execute sql error: {}", sql, e);
             } finally {
                 connection.close();
             }

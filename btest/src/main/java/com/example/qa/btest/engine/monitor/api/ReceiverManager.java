@@ -10,7 +10,9 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ReceiverManager {
 
     public static List<Receiver> receiverList;
@@ -19,7 +21,7 @@ public class ReceiverManager {
         try {
             receiverList = initReceiverList();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to init receiver list", e);
         }
     }
 
@@ -121,7 +123,7 @@ public class ReceiverManager {
 
         public static List<String> findAgentJarFileNames(Pattern pattern) {
             URL agentJarUrl = getAgentJarUrl();
-            System.out.println(agentJarUrl.getPath());
+            log.info("agent jar path: {}", agentJarUrl.getPath());
             return findJarFileNames(agentJarUrl, pattern);
         }
 

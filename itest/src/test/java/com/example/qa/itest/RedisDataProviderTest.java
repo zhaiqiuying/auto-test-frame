@@ -107,21 +107,21 @@ public class RedisDataProviderTest {
 
     // ==================== 辅助方法（仅用于承载 @Redis 注解） ====================
 
-    @Redis(command = "SET", key = "dp_key", value = "dp_value", host = "127.0.0.1", port = 6382)
+    @Redis(command = "SET", key = "dp_key", value = "dp_value", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedSetMethod() {}
 
-    @Redis(command = "SET", key = "dp_get_key", value = "dp_get_value", host = "127.0.0.1", port = 6382)
+    @Redis(command = "SET", key = "dp_get_key", value = "dp_get_value", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedSetGetMethod() {}
 
-    @Redis(command = "GET", key = "dp_get_key", host = "127.0.0.1", port = 6382)
+    @Redis(command = "GET", key = "dp_get_key", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedGetMethod() {}
 
-    @Redis(command = "HSET", key = "dp_hash", field = "f1", value = "v1", host = "127.0.0.1", port = 6382)
+    @Redis(command = "HSET", key = "dp_hash", field = "f1", value = "v1", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedHsetMethod1() {}
 
-    @Redis(command = "HSET", key = "dp_hash", field = "f2", value = "v2", host = "127.0.0.1", port = 6382)
+    @Redis(command = "HSET", key = "dp_hash", field = "f2", value = "v2", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedHsetMethod2() {}
 
-    @Redis(command = "HGETALL", key = "dp_hash", host = "127.0.0.1", port = 6382)
+    @Redis(command = "HGETALL", key = "dp_hash", host = "127.0.0.1", port = REDIS_PORT)
     public void annotatedHgetAllMethod() {}
 }

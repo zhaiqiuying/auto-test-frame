@@ -3,9 +3,11 @@ package com.example.qa.itest.engine.listener;
 import com.example.qa.itest.cases.BaseCase;
 import com.example.qa.itest.model.User;
 import com.example.qa.itest.model.UserContext;
+import lombok.extern.slf4j.Slf4j;
 import org.testng.*;
 
 @Deprecated
+@Slf4j
 public class ItestTestListener implements ITestListener, IInvokedMethodListener {
 
     public void onStart(ITestContext context) {
@@ -23,7 +25,7 @@ public class ItestTestListener implements ITestListener, IInvokedMethodListener 
 //            userContext.setDevice(device.isValid() ? device : Config.COMMON_CONTEXT.getDeviceMap().get(device.getTag()));
 //            userContext.setApp(app.isValid() ? app : Config.COMMON_CONTEXT.getAppMap().get(app.getTag()));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("ItestTestListener onStart failed", e);
         }
     }
 

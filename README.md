@@ -1,5 +1,7 @@
 # auto-test-frame
 
+[![CI](https://github.com/rachel/auto-test-frame/actions/workflows/ci.yml/badge.svg)](https://github.com/rachel/auto-test-frame/actions/workflows/ci.yml)
+
 基于 **TestNG + Spring** 的接口自动化测试框架，采用「引擎层 / 业务接入层」双模块设计，把用例编写成本压到最低：
 打注解就能接数据源、重试、断言，账号与环境全部收敛到 suite 参数和 YAML，换环境不改代码。
 
@@ -473,3 +475,60 @@ public void testCacheValue() throws SQLException {
 
 **Q：软断言没生效？**
 检查 `testng.xml` 是否注册了 `com.example.qa.itest.engine.listener.ItestListener`（它实现了 `EachTestListener`，负责在方法结束后统一判定）。
+
+---
+
+## 确定性防线（VibeCoding Gate）
+
+本项目通过三层确定性防线确保代码质量，不依赖 LLM 自律：
+
+### 防线架构
+
+| 层 | 触发时机 | 检查内容 | 强制级别 |
+|---|---------|---------|---------|
+| **Git pre-commit hook** | `git commit` 时 | 密钥扫描 + 禁止模式 + 编译 + SpotBugs High | 本地强制（`--no-verify` 可跳过） |
+| **GitHub Actions CI** | push / PR 时 | 编译测试 + SpotBugs + PMD + Checkstyle | CI 强制（PR 不可合并） |
+| **Gate 证据检查** | change 完成归档前 | tasks.md 完成度 + 构建 + 禁止残留 + 静态检查全量 | 归档前强制 |
+
+### 安装本地 hook
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+安装后每次 `git commit` 会自动执行：
+1. 密钥扫描（禁止提交 API Key / Token / Password）
+2. 禁止模式检查（`printStackTrace`、`System.out.println`、`EMPTY_LIST`、`@SuppressWarnings("unchecked")`）
+3. 编译检查（`mvn compile`）
+4. SpotBugs High 级别检查
+
+> 跳过单次检查：`git commit --no-verify`（不推荐）
+
+### CI Profile 门禁
+
+本地默认 `failOnViolation=false`（不阻断），CI 环境通过 `-Pci` profile 激活严格门禁：
+
+```bash
+# 本地开发（宽松）
+mvn clean test
+
+# CI 模拟（严格，与 GitHub Actions 一致）
+mvn -Pci clean test spotbugs:check pmd:check checkstyle:check
+```
+
+### Gate 证据检查
+
+OpenSpec change 完成后、归档前运行：
+
+```bash
+bash scripts/gate-check.sh
+```
+
+检查项：
+1. tasks.md 中所有任务是否标 `[x]`
+2. 是否有构建验证任务
+3. `mvn clean test` 是否通过
+4. main 源码中禁止模式是否残留
+5. SpotBugs / PMD / Checkstyle 全量检查（`-Pci`）
+
+全部通过才输出 `GATE PASSED`，可以执行 `opsx archive`。

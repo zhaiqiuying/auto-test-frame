@@ -3,10 +3,10 @@ package com.example.qa.itest.cases;
 import com.example.qa.btest.db.IDBConnection;
 import com.example.qa.btest.db.IDataSource;
 import com.example.qa.btest.logging.LogConfig;
-import com.example.qa.btest.util.StringUtil;
 import com.example.qa.itest.model.CommonContext;
 import com.example.qa.itest.model.User;
 import com.example.qa.itest.model.UserContext;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
@@ -15,8 +15,31 @@ import org.testng.ITestContext;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
 
+import java.util.Map;
+
 @ContextConfiguration(locations = { "classpath:common/ApplicationContext.xml" })
 public class BaseCase extends AbstractTestNGSpringContextTests {
+
+    private static final String KEY_ENV_TYPE = "ENV_TYPE";
+    private static final String DEFAULT_ENV_TYPE = "test";
+    private static final String KEY_LOGBACK_CONFIG = "logback.configurationFile";
+    private static final String KEY_EXECUTE_DEVICE_TAG = "execute_device_tag";
+    private static final String KEY_EXECUTE_DEVICE_CLIENT = "execute_device_client";
+    private static final String KEY_EXECUTE_DEVICE_ID = "execute_device_id";
+    private static final String KEY_EXECUTE_APP_TAG = "execute_app_tag";
+    private static final String KEY_EXECUTE_APP_VERSION = "execute_app_version";
+    private static final String KEY_APP_NAME = "app_name";
+    private static final String KEY_EXECUTE_ENV_TAG = "execute_env_tag";
+    private static final String KEY_EXECUTE_ENV_HOST = "execute_env_host";
+    private static final String KEY_EXECUTE_ENV_LANE_ID = "execute_env_laneId";
+    private static final String KEY_EXECUTE_ENV_TYPE = "execute_env_type";
+    private static final String KEY_EXECUTE_USER_TAG = "execute_user_tag";
+    private static final String KEY_EXECUTE_USER_YTK_USER_ID = "execute_user_ytkUserId";
+    private static final String KEY_EXECUTE_USER_PHONE = "execute_user_phone";
+    private static final String KEY_EXECUTE_USER_COOKIE = "execute_user_cookie";
+    private static final String ATTR_USER_CONTEXT = "userContext";
+
+    private static final int MILLIS_PER_SECOND = 1000;
 
     public UserContext userContext;
     @Autowired
@@ -24,8 +47,8 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
 
     static {
         // 设置logback配置文件
-        String envType = System.getProperty("ENV_TYPE", "test");
-        System.setProperty("logback.configurationFile",
+        String envType = System.getProperty(KEY_ENV_TYPE, DEFAULT_ENV_TYPE);
+        System.setProperty(KEY_LOGBACK_CONFIG,
                 LogConfig.class.getResource("/" + envType + "/config/common/logback.xml").getPath());
     }
 
@@ -39,30 +62,10 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
     @BeforeSuite(dependsOnMethods = {"springTestContextPrepareTestInstance"}, alwaysRun = true)
     @BeforeTest(dependsOnMethods = {"springTestContextPrepareTestInstance"}, alwaysRun = true)
     public void beforeSuite(ITestContext context) {
-
-        User.Device device = User.Device.builder()
-                .tag(context.getSuite().getParameter("execute_device_tag"))
-                .client(context.getSuite().getParameter("execute_device_client"))
-                .id(context.getSuite().getParameter("execute_device_id"))
-                .build();
-        User.App app = User.App.builder()
-                .tag(context.getSuite().getParameter("execute_app_tag"))
-                .version(context.getSuite().getParameter("execute_app_version"))
-                .name(context.getSuite().getParameter("app_name"))
-                .build();
-        User.Env env = User.Env.builder()
-                .tag(context.getSuite().getParameter("execute_env_tag"))
-                .host(context.getSuite().getParameter("execute_env_host"))
-                .laneId(context.getSuite().getParameter("execute_env_laneId"))
-                .type(context.getSuite().getParameter("execute_env_type"))
-                .build();
-        User user = User.builder()
-                .tag(context.getSuite().getParameter("execute_user_tag"))
-                .ytkUserId(context.getSuite().getParameter("execute_user_ytkUserId"))
-                .phone(Long.parseLong(StringUtil.isEmpty(context.getSuite().getParameter("execute_user_phone")) ?
-                        "0" : context.getSuite().getParameter("execute_user_phone")))
-                .cookie(context.getSuite().getParameter("execute_user_cookie"))
-                .build();
+        User.Device device = buildDevice(context);
+        User.App app = buildApp(context);
+        User.Env env = buildEnv(context);
+        User user = buildUser(context);
 
         userContext = new UserContext(user, env, device, app);
         userContext.setUser(user.isValid() ? user :
@@ -73,20 +76,58 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
                 device.getTag() == null ? new User.Device() : commonContext.getDeviceMap().get(device.getTag()));
         userContext.setApp(app.isValid() ? app :
                 app.getTag() == null ? new User.App() : commonContext.getAppMap().get(app.getTag()));
-        context.getSuite().setAttribute("userContext", userContext);
+        context.getSuite().setAttribute(ATTR_USER_CONTEXT, userContext);
     }
 
-    public static final int THOUSAND = 1000;
+    private User.Device buildDevice(ITestContext context) {
+        return User.Device.builder()
+                .tag(context.getSuite().getParameter(KEY_EXECUTE_DEVICE_TAG))
+                .client(context.getSuite().getParameter(KEY_EXECUTE_DEVICE_CLIENT))
+                .id(context.getSuite().getParameter(KEY_EXECUTE_DEVICE_ID))
+                .build();
+    }
+
+    private User.App buildApp(ITestContext context) {
+        return User.App.builder()
+                .tag(context.getSuite().getParameter(KEY_EXECUTE_APP_TAG))
+                .version(context.getSuite().getParameter(KEY_EXECUTE_APP_VERSION))
+                .name(context.getSuite().getParameter(KEY_APP_NAME))
+                .build();
+    }
+
+    private User.Env buildEnv(ITestContext context) {
+        return User.Env.builder()
+                .tag(context.getSuite().getParameter(KEY_EXECUTE_ENV_TAG))
+                .host(context.getSuite().getParameter(KEY_EXECUTE_ENV_HOST))
+                .laneId(context.getSuite().getParameter(KEY_EXECUTE_ENV_LANE_ID))
+                .type(context.getSuite().getParameter(KEY_EXECUTE_ENV_TYPE))
+                .build();
+    }
+
+    private User buildUser(ITestContext context) {
+        String phoneStr = context.getSuite().getParameter(KEY_EXECUTE_USER_PHONE);
+        return User.builder()
+                .tag(context.getSuite().getParameter(KEY_EXECUTE_USER_TAG))
+                .ytkUserId(context.getSuite().getParameter(KEY_EXECUTE_USER_YTK_USER_ID))
+                .phone(Long.parseLong(StringUtils.isEmpty(phoneStr) ? "0" : phoneStr))
+                .cookie(context.getSuite().getParameter(KEY_EXECUTE_USER_COOKIE))
+                .build();
+    }
+
     public void sleepSeconds(int second) {
+        if (second < 0) {
+            throw new IllegalArgumentException("second must not be negative: " + second);
+        }
         try {
-            Thread.sleep(second * THOUSAND);
+            Thread.sleep(second * MILLIS_PER_SECOND);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
 
     public User getUser(String userTag) {
-        if (userContext.getUser() != null && userContext.getUser().getTag().equals(userTag)) {
+        if (userContext.getUser() != null && userTag != null && userTag.equals(userContext.getUser().getTag())) {
             return userContext.getUser();
         }
         if (commonContext != null && !ObjectUtils.isEmpty(commonContext.getUserMap())
@@ -99,40 +140,37 @@ public class BaseCase extends AbstractTestNGSpringContextTests {
     }
 
     public User.Device getDevice(String deviceTag) {
+        throw new UnsupportedOperationException("getDevice not implemented");
+    }
+
+    private IDataSource getDataSource(Map<String, IDataSource> map, String tag) {
+        if (map != null && !ObjectUtils.isEmpty(map)) {
+            return map.getOrDefault(tag, null);
+        }
+        return null;
+    }
+
+    private IDBConnection getConnection(Map<String, IDataSource> map, String tag) {
+        IDataSource dataSource = getDataSource(map, tag);
+        if (dataSource != null) {
+            return dataSource.getConnection();
+        }
         return null;
     }
 
     public IDataSource getDataSource(String dbTag) {
-        if (commonContext.getMysqlDataSourceMap() != null
-                && !ObjectUtils.isEmpty(commonContext.getMysqlDataSourceMap())
-        ) {
-            return commonContext.getMysqlDataSourceMap().getOrDefault(dbTag, null);
-        }
-        return null;
+        return getDataSource(commonContext.getMysqlDataSourceMap(), dbTag);
     }
 
     public IDBConnection getConnection(String dbTag) {
-        IDataSource dataSource = getDataSource(dbTag);
-        if (dataSource != null) {
-            return dataSource.getConnection();
-        }
-        return null;
+        return getConnection(commonContext.getMysqlDataSourceMap(), dbTag);
     }
 
     public IDataSource getRedisDataSource(String tag) {
-        if (commonContext.getRedisDataSourceMap() != null
-                && !ObjectUtils.isEmpty(commonContext.getRedisDataSourceMap())
-        ) {
-            return commonContext.getRedisDataSourceMap().getOrDefault(tag, null);
-        }
-        return null;
+        return getDataSource(commonContext.getRedisDataSourceMap(), tag);
     }
 
     public IDBConnection getRedisConnection(String tag) {
-        IDataSource dataSource = getRedisDataSource(tag);
-        if (dataSource != null) {
-            return dataSource.getConnection();
-        }
-        return null;
+        return getConnection(commonContext.getRedisDataSourceMap(), tag);
     }
 }

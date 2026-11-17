@@ -51,16 +51,16 @@ public class MysqlDataSource extends AbstractDataSource {
                     }
 
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    log.error("Error reading ResultSet", e);
                 }
                 return result;
             };
             try {
                 return (List)execute(sql, execute);
             } catch (SQLException e) {
-                e.printStackTrace();
+                log.error("execute sql error: {}", sql, e);
             }
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         @Override

@@ -63,8 +63,4 @@ public class TimeUtil {
 //        LocalDateTime now = LocalDateTimeUtil.now();
 //        LocalDateTime dt = LocalDateTimeUtil.offset(now, -3, ChronoUnit.HOURS);
 //    }
-
-    public static void main(String[] args) {
-        System.out.println(getStartEndDayOfWeek());
-    }
 }

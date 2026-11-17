@@ -15,8 +15,10 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import lombok.extern.slf4j.Slf4j;
 
 @Deprecated
+@Slf4j
 public class JavasistUtil {
 
     public static void addAnnotationToMethod(Class<?> clazz, String methodName, Class<?> annotationClass,
@@ -47,7 +49,7 @@ public class JavasistUtil {
 
             retransformClass(clazz, ctClass.toBytecode());
         } catch (NotFoundException | IOException | CannotCompileException e) {
-            e.printStackTrace();
+            log.error("addAnnotationToMethod failed for {}.{}", clazz.getName(), methodName, e);
         }
     }
 
@@ -79,7 +81,7 @@ public class JavasistUtil {
             instrumentation.addTransformer(cft, true);
             instrumentation.retransformClasses(clazz);
         } catch (UnmodifiableClassException e) {
-            e.printStackTrace();
+            log.error("retransformClass failed for {}", clazz.getName(), e);
         } finally {
             instrumentation.removeTransformer(cft);
         }
