@@ -52,7 +52,7 @@ jobs:
           cache: maven
 
       - name: SpotBugs Check
-        run: mvn -B -Pci -q spotbugs:check
+        run: mvn -B -Pci -q compile spotbugs:check
 
   pmd:
     name: PMD
@@ -68,7 +68,7 @@ jobs:
           cache: maven
 
       - name: PMD Check
-        run: mvn -B -Pci -q pmd:check
+        run: mvn -B -Pci -q compile pmd:check
 
   checkstyle:
     name: Checkstyle
@@ -84,7 +84,7 @@ jobs:
           cache: maven
 
       - name: Checkstyle Check
-        run: mvn -B -Pci -q checkstyle:check
+        run: mvn -B -Pci -q compile checkstyle:check
 
   # ──────────────────────────────────────────────
   # Gate: 所有检查通过才允许合并
