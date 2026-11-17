@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
-<suite name="Tests" verbose="5" parallel="methods" thread-count="5">
-  <listeners>
-    <listener class-name="com.example.qa.itest.listener.FinishListener"></listener>
-  </listeners>
-  <test name="Test2">
-    <groups>
-      <run>
-        <include name="group1"/>
-      </run>
-    </groups>
+<suite name="Tests" verbose="5" parallel="false" thread-count="1">
+  <test name="RedisTests">
     <classes>
-      <class name="com.example.qa.itest.SampleTestNgTest"/>
+      <class name="com.example.qa.itest.RedisDataProviderTest"/>
+      <class name="com.example.qa.itest.RedisTagConnectionTest"/>
     </classes>
   </test>
 </suite>

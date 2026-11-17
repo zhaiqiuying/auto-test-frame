@@ -1,0 +1,5 @@
+redises:
+  - tag: cache_db
+    host: 127.0.0.1
+    port: 6383
+    database: 0

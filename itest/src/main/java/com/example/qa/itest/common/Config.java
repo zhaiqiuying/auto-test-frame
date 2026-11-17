@@ -62,5 +62,11 @@ public class Config {
                 commonContext.getMysqlDataSourceMap().put((String) ((Map<?, ?>) item).get("tag"), dataSource);
             });
         }
+        if (map.containsKey("redises")) {
+            ((List) map.get("redises")).stream().forEach(item -> {
+                IDataSource dataSource = DataSourceFactory.getDataSource((Map) item);
+                commonContext.getRedisDataSourceMap().put((String) ((Map<?, ?>) item).get("tag"), dataSource);
+            });
+        }
     }
 }

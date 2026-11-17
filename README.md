@@ -5,7 +5,7 @@
 
 - 语言/构建：Java 8 + Maven 多模块
 - 依赖全部来自 Maven Central（无内网私有构件，克隆即可构建）
-- 数据驱动：CSV / MySQL 双数据源，注解式接入
+- 数据驱动：CSV / MySQL / Redis 三数据源，注解式接入
 - 失败重试：`@Retry` 注解式重试，用例代码零改动（计数规则见「失败重试」）
 - 上下文管理：用户 / 环境 / 设备 / App 四类配置按 `tag` 集中管理
 - 断言体系：硬断言 + 软断言（方法内全部执行完再统一失败）
@@ -27,7 +27,7 @@ graph LR
     B --> C[HTTP 工具 HttpUtil / HttpModelUtil]
     C --> D[被测服务]
     A --> E[断言 AssertUtil]
-    A --> F[数据驱动 @Csv / @Mysql]
+    A --> F[数据驱动 @Csv / @Mysql / @Redis]
     F --> G[CommonDataProvider 注册表]
     A --> H[上下文 UserContext]
     H --> I[context.yml + suite 参数]
@@ -95,10 +95,10 @@ auto-test-frame
 ├── btest/                      # 引擎层
 │   └── src/main/java/com/example/qa/btest
 │       ├── common/             # Config(Spring Bean)、Constant(环境/用例等级常量)
-│       ├── db/                 # DataSourceFactory、IDataSource、IDBConnection、mysql/
+│       ├── db/                 # DataSourceFactory、IDataSource、IDBConnection、mysql/、redis/
 │       ├── engine/
 │       │   ├── asserts/        # AssertUtil、MethodBasedAssert(软断言)
-│       │   ├── dataProvider/   # 注册表 CommonDataProvider + csv/、mysql/
+│       │   ├── dataProvider/   # 注册表 CommonDataProvider + csv/、mysql/、redis/
 │       │   ├── listener/       # @Retry、RetryAnalyzer、RetryListener、EachTestListener
 │       │   └── monitor/        # 插件式通知(Receiver 加载 test-monitor/ 下的 jar)
 │       ├── logging/            # LogConfig
@@ -235,6 +235,40 @@ public void testLoginMysql(String phone, String expectCode) { ... }
 - `@Csv(isRelativePath = false)` 可用 classpath 绝对路径
 - 新增数据源无需改分发逻辑：实现 `DataProvider` 接口（`getDataType()` 返回注解 Class），再在 `CommonDataProvider` 静态块里 `register(...)` 即可
 
+### Redis 数据源
+
+`@Redis` 注解支持从 Redis 读取数据注入测试方法参数，使用方式与 `@Csv` / `@Mysql` 一致：
+
+```java
+@Test(dataProvider = "genData", dataProviderClass = CommonDataProvider.class)
+@Redis(command = "GET", key = "user:1001:name", host = "127.0.0.1", port = 6379)
+public void testUserName(String name) { ... }
+
+// HGETALL 返回多行，每行两列（field, value），自动拆分为多组参数
+@Test(dataProvider = "genData", dataProviderClass = CommonDataProvider.class)
+@Redis(command = "HGETALL", key = "user:1001", host = "127.0.0.1", port = 6379)
+public void testUserFields(String field, String value) { ... }
+
+// 也可用 url 方式配置，或省略 host/port 使用 suite 参数 redis_host / redis_port
+@Test(dataProvider = "genData", dataProviderClass = CommonDataProvider.class)
+@Redis(command = "SET", key = "flag", value = "on", url = "redis://127.0.0.1:6379/0")
+public void testSetFlag(String status) { ... }
+```
+
+`@Redis` 注解属性：
+
+| 属性 | 默认值 | 说明 |
+|---|---|---|
+| `command` | `""` | Redis 命令（GET/SET/DEL/EXPIRE/HGET/HSET/HGETALL/HDEL/LRANGE/LPUSH/RPUSH） |
+| `key` | `""` | 操作的 key |
+| `field` | `""` | Hash field（HGET/HSET 等命令使用） |
+| `value` | `""` | 值（SET/HSET 等命令使用） |
+| `host` | `""` | Redis 主机地址，为空时取 suite 参数 `redis_host` |
+| `port` | `6379` | Redis 端口 |
+| `password` | `""` | 密码，为空时取 suite 参数 `redis_password` |
+| `database` | `0` | 数据库编号 |
+| `url` | `""` | 可选，`redis://host:port/db` 格式，设置后覆盖 host/port |
+
 ---
 
 ## 失败重试
@@ -290,6 +324,7 @@ public void testQuery() { ... }
 | `execute_device_tag` / `execute_device_client` / `execute_device_id` | `User.Device` |
 | `execute_app_tag` / `execute_app_version` / `app_name` | `User.App` |
 | `mysql_url` / `mysql_user` / `mysql_password` | `@Mysql` 默认连接 |
+| `redis_host` / `redis_port` / `redis_password` | `@Redis` 默认连接 |
 
 ### 资源目录约定
 
@@ -326,6 +361,11 @@ mysqls:
     url: jdbc:mysql://127.0.0.1:3306/test
     user: root
     password: root
+redises:
+  - tag: cache_db
+    host: 127.0.0.1
+    port: 6379
+    database: 0
 ```
 
 > 说明：当前仓库尚未内置上述资源文件。`BaseCase` 强依赖 `classpath:common/ApplicationContext.xml`，
@@ -354,6 +394,53 @@ public void testOrderStatus() throws SQLException {
 
 `DataSourceFactory` 按配置内容的 MD5 缓存数据源实例，同一份配置不会重复建连接池（Druid）。
 
+### Redis 数据源访问（tag 接入）
+
+在 `context.yml` 中配置 `redises` 段后，可通过 `getRedisConnection(tag)` 获取 Redis 连接：
+
+```yaml
+# context.yml
+redises:
+  - tag: cache_db
+    host: 127.0.0.1
+    port: 6379
+    database: 0
+  - tag: session_db
+    url: redis://10.0.0.1:6380/1
+```
+
+```java
+@Test
+public void testCacheValue() throws SQLException {
+    // context.yml 里 redises 定义的 tag
+    IDBConnection conn = getRedisConnection("cache_db");
+    try {
+        // SET key value → 返回 [["OK"]]
+        List setResult = (List) conn.execute("SET user:name test_user");
+        // GET key → 返回 [["test_user"]]
+        List getResult = (List) conn.execute("GET user:name");
+    } finally {
+        conn.close();
+    }
+}
+```
+
+`RedisConnection` 将 Redis 命令适配为 `IDBConnection.execute(String)` 接口，结果统一转换为 `List<List<Object>>` 格式，与 MySQL 数据源保持一致。
+
+支持的命令及返回格式：
+
+| 命令 | 返回结构 | 示例 |
+|---|---|---|
+| `GET key` | 单行单列 `[[value]]` | `GET user:name` → `[["test_user"]]` |
+| `SET key value` | 单行单列 `[["OK"]]` | — |
+| `DEL key1 key2` | 单行单列 `[[count]]` | `DEL k1 k2` → `[[2]]` |
+| `EXPIRE key seconds` | 单行单列 `[[1]]` | — |
+| `HGET hash field` | 单行单列 `[[value]]` | — |
+| `HSET hash field value` | 单行单列 `[[count]]` | — |
+| `HGETALL hash` | 多行两列 `[[f1,v1],[f2,v2]]` | — |
+| `LPUSH key v1 v2` | 单行单列 `[[length]]` | — |
+| `LRANGE key 0 -1` | 多行单列 `[[v1],[v2]]` | — |
+
 ---
 
 ## 技术栈
@@ -365,6 +452,7 @@ public void testOrderStatus() throws SQLException {
 | HTTP | Apache HttpClient 4.5 |
 | JSON | Gson、Jackson 2、JsonPath、org.json |
 | 数据库 | Druid 1.2.8、MySQL Connector/J |
+| Redis | Jedis 4.4.3、jedis-mock 1.1.21（测试） |
 | 数据驱动 | test-data-provider（CSV 解析） |
 | 配置 | SnakeYAML |
 | 日志 | SLF4J + Logback |
