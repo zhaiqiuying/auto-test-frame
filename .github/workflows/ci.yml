@@ -8,10 +8,12 @@ on:
 
 jobs:
   # ──────────────────────────────────────────────
-  # Layer 1-A: 编译 + 单元测试（必须通过）
+  # Layer 1: 编译 + 测试 + 静态分析（一条命令完成）
+  # mvn verify 走完整 Maven 生命周期，模块间依赖在 reactor 内解析，
+  # 不需要 install jar 到本地仓库
   # ──────────────────────────────────────────────
   build-test:
-    name: Build & Test
+    name: Build, Test & Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,8 +25,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Compile + Test
-        run: mvn -B clean test
+      - name: Compile + Test + SpotBugs + PMD + Checkstyle
+        run: mvn -B -Pci clean verify
 
       - name: Upload test results
         if: always()
@@ -33,71 +35,5 @@ jobs:
           name: test-results
           path: |
             **/target/surefire-reports/*.xml
+            **/target/spotbugs/*.xml
             **/target/site/
-
-  # ──────────────────────────────────────────────
-  # Layer 1-B: 静态分析（并行，-Pci 激活门禁）
-  # ──────────────────────────────────────────────
-  spotbugs:
-    name: SpotBugs (High)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 8
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: SpotBugs Check
-        run: mvn -B -Pci -q compile spotbugs:check
-
-  pmd:
-    name: PMD
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 8
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: PMD Check
-        run: mvn -B -Pci -q compile pmd:check
-
-  checkstyle:
-    name: Checkstyle
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 8
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Checkstyle Check
-        run: mvn -B -Pci -q compile checkstyle:check
-
-  # ──────────────────────────────────────────────
-  # Gate: 所有检查通过才允许合并
-  # ──────────────────────────────────────────────
-  gate:
-    name: Gate (all checks pass)
-    runs-on: ubuntu-latest
-    needs: [ build-test, spotbugs, pmd, checkstyle ]
-    steps:
-      - name: Gate passed
-        run: |
-          echo "✅ All Layer 1 checks passed"
-          echo "  - Build & Test: OK"
-          echo "  - SpotBugs (High): OK"
-          echo "  - PMD: OK"
-          echo "  - Checkstyle: OK"

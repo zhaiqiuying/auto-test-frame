@@ -72,6 +72,15 @@
             </plugin>
           </plugins>
         </configuration>
+        <executions>
+          <execution>
+            <id>spotbugs-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <!-- PMD: 代码规范、圈复杂度、未使用代码 -->
       <plugin>
@@ -86,6 +95,15 @@
           <failurePriority>${pmd.failurePriority}</failurePriority>
           <targetJdk>1.8</targetJdk>
         </configuration>
+        <executions>
+          <execution>
+            <id>pmd-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <!-- Checkstyle: 代码风格、命名规范、import 顺序 -->
       <plugin>
@@ -97,6 +115,15 @@
           <failOnViolation>${checkstyle.failOnViolation}</failOnViolation>
           <consoleOutput>true</consoleOutput>
         </configuration>
+        <executions>
+          <execution>
+            <id>checkstyle-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
